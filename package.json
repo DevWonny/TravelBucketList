@@ -8,10 +8,13 @@
     "start": "next start"
   },
   "dependencies": {
+    "d3-geo": "^3.1.1",
     "next": "15.5.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "three": "^0.179.1"
+    "three": "^0.179.1",
+    "topojson-client": "^3.1.0",
+    "world-atlas": "^2.0.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

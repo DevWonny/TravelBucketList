@@ -4,6 +4,9 @@ import { useEffect, useRef } from "react";
 import * as Three from "three/webgpu";
 import { texture, uv } from "three/tsl";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
+import { feature } from "topojson-client";
+import { geoContains } from "d3-geo";
+import * as worldData from "world-atlas/countries-110m.json";
 
 export default function Earth() {
   const mountRef = useRef<HTMLDivElement | null>(null);
@@ -14,7 +17,7 @@ export default function Earth() {
       return;
     }
 
-    // Camera
+    // Camera (fov, aspect, near, far)
     const camera = new Three.PerspectiveCamera(
       25,
       mountRef.current.clientWidth / mountRef.current.clientHeight,
@@ -60,6 +63,53 @@ export default function Earth() {
     controls.enableDamping = true;
     controls.minDistance = 1.5;
     controls.maxDistance = 10;
+
+    // World Data
+    const world = feature(
+      worldData as any,
+      (worldData as any).objects.countries
+    );
+
+    // Raycaster
+    const raycaster = new Three.Raycaster();
+    const mouse = new Three.Vector2();
+
+    // Click Event
+    const onEarthClick = (event: MouseEvent) => {
+      if (!mountRef.current) {
+        console.log("Earth Click Event Error");
+        return;
+      }
+
+      // 좌표 (-1 ~ 1)
+      mouse.x = (event.clientX / mountRef.current.clientWidth) * 2 - 1;
+      mouse.y = -(event.clientY / mountRef.current.clientHeight) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObject(globe);
+
+      if (intersects.length > 0) {
+        const point = intersects[0].point.clone().normalize(); // 단위 벡터
+        const lat = Math.asin(point.y) * (180 / Math.PI); // 위도
+        console.log("🚀 ~ onEarthClick ~ lat:", lat);
+        const lon = Math.atan2(point.z, point.x) * (180 / Math.PI); // 경도
+        console.log("🚀 ~ onEarthClick ~ lon:", lon);
+
+        // d3-geo로 국가 찾기
+        const found = (world as any).features.find((f: any) => {
+          geoContains(f, [lon, lat]);
+        });
+
+        if (found) {
+          console.log(found);
+          alert(`국가 : ${found.properties.name || "Unknown"}`);
+        } else {
+          alert("찾을 수 없음.");
+        }
+      } else {
+        console.log("intersects is Empty Array");
+      }
+    };
+    renderer.domElement.addEventListener("click", onEarthClick);
 
     // Resize
     const onResize = () => {
